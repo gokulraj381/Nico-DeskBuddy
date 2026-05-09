@@ -1,0 +1,5 @@
+.pio/
+.vscode/
+*.bak
+*.bak2
+*.bak3
