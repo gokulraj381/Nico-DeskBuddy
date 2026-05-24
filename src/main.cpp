@@ -824,12 +824,25 @@ function addRem(){
 function delRem(i){fetch('/rem/del?i='+i).then(()=>loadRem());}
 function loadRem(){
   fetch('/rem/list').then(r=>r.json()).then(d=>{
-    var h='';
+    var list=document.getElementById('rlist');
+    list.innerHTML='';
     d.forEach((r,i)=>{
-      h+="<div class='rem-item'><span><span class='rem-time'>"+r.time+"</span> "+r.text+"</span>";
-      h+="<button class='btn-del' onclick='delRem("+i+")'>X</button></div>";
+      var item=document.createElement('div');
+      item.className='rem-item';
+      var textWrap=document.createElement('span');
+      var time=document.createElement('span');
+      time.className='rem-time';
+      time.textContent=r.time;
+      textWrap.appendChild(time);
+      textWrap.appendChild(document.createTextNode(' '+r.text));
+      var del=document.createElement('button');
+      del.className='btn-del';
+      del.textContent='X';
+      del.onclick=function(){delRem(i);};
+      item.appendChild(textWrap);
+      item.appendChild(del);
+      list.appendChild(item);
     });
-    document.getElementById('rlist').innerHTML=h;
   });
 }
 loadRem();
@@ -899,6 +912,35 @@ void handleRemDel() {
   }
 }
 
+String jsonEscape(const char* input) {
+  String out;
+  while (*input) {
+    char c = *input++;
+    switch (c) {
+      case '"': out += "\\\""; break;
+      case '\\': out += "\\\\"; break;
+      case '\b': out += "\\b"; break;
+      case '\f': out += "\\f"; break;
+      case '\n': out += "\\n"; break;
+      case '\r': out += "\\r"; break;
+      case '\t': out += "\\t"; break;
+      case '<': out += "\\u003C"; break;
+      case '>': out += "\\u003E"; break;
+      case '&': out += "\\u0026"; break;
+      default:
+        if ((uint8_t)c < 0x20) {
+          char buf[7];
+          sprintf(buf, "\\u%04X", (uint8_t)c);
+          out += buf;
+        } else {
+          out += c;
+        }
+        break;
+    }
+  }
+  return out;
+}
+
 void handleRemList() {
   String json = "[";
   for (int i = 0; i < reminderCount; i++) {
@@ -908,7 +950,7 @@ void handleRemList() {
     String ampm = (reminders[i].hour >= 12) ? "PM" : "AM";
     char timeBuf[10];
     sprintf(timeBuf, "%d:%02d %s", h12, reminders[i].min, ampm.c_str());
-    json += "{\"time\":\"" + String(timeBuf) + "\",\"text\":\"" + String(reminders[i].text) + "\"}";
+    json += "{\"time\":\"" + String(timeBuf) + "\",\"text\":\"" + jsonEscape(reminders[i].text) + "\"}";
   }
   json += "]";
   server.send(200, "application/json", json);
